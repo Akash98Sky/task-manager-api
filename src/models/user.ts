@@ -2,7 +2,7 @@ import mongoose, { Model, Document } from 'mongoose'
 import validator from 'validator'
 import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
-import Task from './task'
+import Task, { TaskSchema } from './task'
 
 const userSchema = new mongoose.Schema<UserSchema>({
     name: {
@@ -61,6 +61,7 @@ export interface UserSchema extends Document {
     password: string,
     age: number,
     tokens: { token: string }[],
+    tasks?: TaskSchema[],
     generateAuthToken(): Promise<string>,
 }
 

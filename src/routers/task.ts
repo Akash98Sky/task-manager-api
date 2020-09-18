@@ -1,6 +1,7 @@
 import express from 'express'
 import Task from '../models/task'
 import auth from '../middleware/auth'
+import { UserSchema } from '../models/user';
 const router = express.Router();
 
 router.post('/tasks', auth, async (req, res) => {
@@ -18,18 +19,33 @@ router.post('/tasks', auth, async (req, res) => {
 })
 
 // GET /tasks?completed=true
+// GET /tasks?limit=10&skip=0
+// GET /tasks?sortBy=createdAt:desc
 router.get('/tasks', auth, async (req, res) => {
+    const user = (req as any).user as UserSchema;
+
     const match: { completed?: boolean } = {};
-    const user = (req as any).user;
+    const sort: { [sortKey: string]: 1 | -1 } = {};
 
     if (req.query.completed) {
         match.completed = req.query.completed === 'true'
     }
 
+    if (req.query.sortBy) {
+        const splits = (req.query.sortBy as string).split(':');
+
+        sort[splits[0]] = splits[1] === 'desc' ? -1 : 1;
+    }
+
     try {
         await user.populate({
             path: 'tasks',
-            match
+            match,
+            options: {
+                limit: parseInt(req.query.limit as string),
+                skip: parseInt(req.query.skip as string),
+                sort
+            },
         }).execPopulate()
         res.send(user.tasks)
     } catch (e) {

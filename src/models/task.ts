@@ -1,4 +1,4 @@
-import mongoose from 'mongoose'
+import mongoose, { Document } from 'mongoose'
 
 const taskSchema = new mongoose.Schema({
     description: {
@@ -19,6 +19,12 @@ const taskSchema = new mongoose.Schema({
     timestamps: true
 })
 
-const Task = mongoose.model('Task', taskSchema)
+export interface TaskSchema extends Document {
+    description: string,
+    completed: boolean,
+    owner: mongoose.Schema.Types.ObjectId,
+}
+
+const Task = mongoose.model<TaskSchema>('Task', taskSchema)
 
 export default Task;
