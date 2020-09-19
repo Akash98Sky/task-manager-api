@@ -50,19 +50,23 @@ const userSchema = new mongoose.Schema<UserSchema>({
             type: String,
             required: true
         }
-    }]
+    }],
+    avatar: {
+        type: Buffer
+    }
 }, {
     timestamps: true
 })
 
 export interface UserSchema extends Document {
-    name: string,
-    email: string,
-    password: string,
-    age: number,
-    tokens: { token: string }[],
-    tasks?: TaskSchema[],
-    generateAuthToken(): Promise<string>,
+    name: string;
+    email: string;
+    password: string;
+    age: number;
+    tokens: { token: string }[];
+    tasks?: TaskSchema[];
+    avatar?: Buffer;
+    generateAuthToken(): Promise<string>;
 }
 
 userSchema.virtual('tasks', {
@@ -77,13 +81,14 @@ userSchema.methods.toJSON = function () {
 
     delete userObject.password
     delete userObject.tokens
+    delete userObject.avatar
 
     return userObject
 }
 
 userSchema.methods.generateAuthToken = async function () {
     const user = this
-    const token = jwt.sign({ _id: user._id.toString() }, 'thisismynewcourse')
+    const token = jwt.sign({ _id: user._id.toString() }, process.env.JWT_SECRET as string)
 
     user.tokens.push({ token })
     await user.save()

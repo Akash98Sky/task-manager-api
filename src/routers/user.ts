@@ -1,6 +1,11 @@
 import express from 'express'
-import User, { UserSchema } from '../models/user'
+import User from '../models/user'
 import auth from '../middleware/auth'
+import { avatarUpload } from '../middleware/upload';
+import errorMiddleware from '../middleware/error';
+import AuthRequest from '../models/auth';
+import sharp from 'sharp';
+import { sendCancelationMail, sendWelcomeMail } from '../email/account';
 
 const router = express.Router();
 
@@ -9,6 +14,7 @@ router.post('/users', async (req, res) => {
 
     try {
         await user.save()
+        sendWelcomeMail(user.email, user.name);
         const token = await user.generateAuthToken()
         res.status(201).send({ user, token })
     } catch (e) {
@@ -26,11 +32,10 @@ router.post('/users/login', async (req, res) => {
     }
 })
 
-router.post('/users/logout', auth, async (req, res) => {
-    const user = (req as any).user as UserSchema;
+router.post('/users/logout', auth, async (req: AuthRequest, res) => {
     try {
-        user.tokens.splice(user.tokens.findIndex((value) => value.token === (req as any).token), 1);
-        await user.save()
+        req.user?.tokens.splice(req.user?.tokens.findIndex((value) => value.token === req.token), 1);
+        await req.user?.save()
 
         res.send()
     } catch (e) {
@@ -38,23 +43,21 @@ router.post('/users/logout', auth, async (req, res) => {
     }
 })
 
-router.post('/users/logoutAll', auth, async (req, res) => {
-    const user = (req as any).user as UserSchema;
+router.post('/users/logoutAll', auth, async (req: AuthRequest, res) => {
     try {
-        user.tokens = []
-        await user.save()
+        req.user?.tokens.splice(0);
+        await req.user?.save()
         res.send()
     } catch (e) {
         res.status(500).send()
     }
 })
 
-router.get('/users/me', auth, async (req, res) => {
-    const user = (req as any).user as UserSchema;
-    res.send(user)
+router.get('/users/me', auth, async (req: AuthRequest, res) => {
+    res.send(req.user)
 })
 
-router.patch('/users/me', auth, async (req, res) => {
+router.patch('/users/me', auth, async (req: AuthRequest, res) => {
     const updates = Object.keys(req.body)
     const allowedUpdates = ['name', 'email', 'password', 'age']
     const isValidOperation = updates.every((update) => allowedUpdates.includes(update))
@@ -64,25 +67,59 @@ router.patch('/users/me', auth, async (req, res) => {
     }
 
     try {
-        const user = (req as any).user as UserSchema;
-        
-        user.set(req.body)
-        await user.save()
-        res.send(user)
+        req.user?.set(req.body)
+        await req.user?.save()
+
+        res.send(req.user)
     } catch (e) {
         res.status(400).send(e)
     }
 })
 
-router.delete('/users/me', auth, async (req, res) => {
-    const user = (req as any).user as UserSchema;
-
+router.delete('/users/me', auth, async (req: AuthRequest, res) => {
     try {
-        await user.remove()
-        res.send(user)
+        if (req.user) {
+            await req.user.remove()
+            sendCancelationMail(req.user.email, req.user.name);
+        }
+
+        res.send(req.user)
     } catch (e) {
         res.status(500).send()
     }
 })
+
+router.post('/users/me/avatar', auth, avatarUpload.single('image'),
+    async (req: AuthRequest, res: express.Response) => {
+        const avatar = await sharp(req.file.buffer).resize({ width: 250, height: 250 }).png().toBuffer();
+
+        req.user?.set({ avatar });
+        await req.user?.save();
+
+        res.send();
+    }, errorMiddleware);
+
+router.delete('/users/me/avatar', auth,
+    async (req: AuthRequest, res: express.Response) => {
+        req.user?.set({ avatar: undefined });
+        await req.user?.save();
+
+        res.send();
+    }, errorMiddleware);
+
+router.get('/users/:id/avatar', async (req, res) => {
+    try {
+        const user = await User.findById(req.params.id).exec();
+
+        if (!user?.avatar) {
+            throw new Error();
+        }
+
+        res.setHeader('Content-Type', 'image/png');
+        res.send(user.avatar);
+    } catch (error) {
+        res.status(404).send()
+    }
+});
 
 export default router;
