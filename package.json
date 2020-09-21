@@ -7,7 +7,7 @@
     "build": "tsc",
     "start": "node out/src/index.js",
     "dev": "env-cmd nodemon src/index.ts",
-    "test": "jest --runInBand",
+    "test": "jest --runInBand --rootDir=./out",
     "localtest": "env-cmd -f .env.test jest --watch --runInBand"
   },
   "keywords": [],
