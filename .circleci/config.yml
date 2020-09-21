@@ -17,6 +17,9 @@ jobs:
           app-dir: ~/task-manager
           cache-path: node_modules
           override-ci-command: npm i
+      - run:
+          name: Building JavaScript files
+          command: npm run build
       # Save workspace for subsequent jobs (i.e. test)
       - persist_to_workspace:
           root: .
