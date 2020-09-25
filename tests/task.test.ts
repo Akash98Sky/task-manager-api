@@ -1,11 +1,16 @@
 import request from 'supertest';
 import app from '../src/app';
 import Task from '../src/models/task';
-import { closeDatabase, setupDatabase, taskThree, userOne, userOneId } from './fixtures/db';
+import { closeDatabase, openDatabase, setupTaskDatabase, setupUserDatabase, taskThree, userOne, userOneId } from './fixtures/db';
 
-beforeAll(async () => await setupDatabase());
+beforeAll(async () => {
+	await openDatabase();
+	await setupUserDatabase();
+});
 
-afterAll(async () => await closeDatabase());
+beforeEach(setupTaskDatabase);
+
+afterAll(closeDatabase);
 
 test('Should create task for user', async () => {
 	const response = await request(app)
@@ -28,7 +33,7 @@ test('Should return all tasks of a user', async () => {
 		.expect(200);
 
 	const tasks: { owner: string }[] = response.body || [];
-	expect(tasks.length).toBe(3);
+	expect(tasks.length).toBe(2);
 	tasks.forEach((task) => expect(userOneId.equals(task.owner)).toBe(true));
 })
 

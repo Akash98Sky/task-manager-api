@@ -46,14 +46,15 @@ export const taskThree = {
 	owner: userTwo._id
 }
 
-export const setupDatabase = async () => {
-	// connect to database
-	require('../../src/db/mongoose');
+export const openDatabase = async () => await require('../../src/db/mongoose');
 
+export const setupUserDatabase = async () => {
 	await User.deleteMany({}).exec();
 	await new User(userOne).save();
 	await new User(userTwo).save();
+}
 
+export const setupTaskDatabase = async () => {
 	await Task.deleteMany({}).exec();
 	await new Task(taskOne).save();
 	await new Task(taskTwo).save();

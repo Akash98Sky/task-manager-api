@@ -1,11 +1,13 @@
 import request from 'supertest';
 import app from '../src/app';
 import User from '../src/models/user';
-import { closeDatabase, setupDatabase, userOne, userOneId } from './fixtures/db';
+import { closeDatabase, openDatabase, setupUserDatabase, userOne, userOneId } from './fixtures/db';
 
-beforeAll(async () => await setupDatabase());
+beforeAll(openDatabase);
 
-afterAll(async () => await closeDatabase());
+beforeEach(setupUserDatabase);
+
+afterAll(closeDatabase);
 
 test('Should signup new user!', async () => {
 	const response = await request(app).post('/users').send({
